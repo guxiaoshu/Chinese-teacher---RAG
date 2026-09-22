@@ -78,7 +78,7 @@ pip install -r requirements.txt
 DEEPSEEK_API_KEY=sk-xxxxxxxx
 ```
 
-然后就可以开始烧 token 了（放心，DeepSeek 很便宜，冲个100块够一个月梁圣NB，）。
+然后就可以开始烧 token 了（放心，DeepSeek 很便宜，冲个100块够一个月，梁圣NB！！）。
 
 ### 4. 启动
 
