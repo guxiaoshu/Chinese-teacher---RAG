@@ -1,0 +1,19 @@
+# 密钥与本地环境
+.env
+
+# 运行时产物
+data/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 入库目录里的源文件（可选，按需取消注释）
+# ingest/private/*
+# ingest/public/*
+# !ingest/private/.gitkeep
+# !ingest/public/.gitkeep
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,95 @@
+# ============================================================
+# 语文教学 RAG 系统配置
+# 标签体系、切片规则、模型与检索参数都集中在这里，可增删改。
+# ============================================================
+
+tagging:
+  # 学段（枚举）
+  grades:
+    - 七年级上
+    - 七年级下
+    - 八年级上
+    - 八年级下
+    - 九年级上
+    - 九年级下
+    - 高一上
+    - 高一下
+    - 高二上
+    - 高二下
+    - 高三上
+    - 高三下
+
+  # 知识点（枚举）
+  knowledge_points:
+    - 文言实词
+    - 文言虚词
+    - 特殊句式
+    - 现代文赏析
+    - 作文立意
+    - 文学常识
+    - 古诗文默写
+    - 语言运用
+    - 阅读理解
+    - 写作技法
+
+  # 文档类型（枚举，决定切片策略）
+  doc_types:
+    - 教案
+    - 课堂笔记
+    - 学生错题
+    - 习题
+    - 学生作答样本
+    - 文言笔记
+    - 作文材料
+    - 其他
+
+  # 学情标签（枚举，可多选，分类时也可生成自由文本学情描述）
+  learning_tags:
+    - 班级共性错误
+    - 易混淆点
+    - 学生易踩坑
+
+  # 权威等级（检索排序权重：数字越大越优先）
+  # 冲突时以教师手写批注为准 → 教师批注权威最高
+  authority:
+    - { name: 教师批注, weight: 5 }
+    - { name: 教材, weight: 4 }
+    - { name: 教师教案, weight: 4 }
+    - { name: 教参, weight: 3 }
+    - { name: 优质课案例, weight: 3 }
+    - { name: 学生作答, weight: 2 }
+    - { name: 其他, weight: 1 }
+
+llm:
+  base_url: https://api.deepseek.com
+  chat_model: deepseek-chat        # 快：分类 / 切片边界 / 答疑 / 出题结构化输出
+  reason_model: deepseek-reasoner  # 慢但推理强：写教案
+  temperature: 0.2
+  max_retries: 3
+
+embedding:
+  model_name: BAAI/bge-base-zh-v1.5
+  # device: auto -> 有 CUDA 用 GPU，否则 CPU（本机为 Intel 集显，走 CPU）
+  device: auto
+  query_instruction: "为这个句子生成表示以用于检索相关文章："
+
+retrieval:
+  private_top_k: 6    # 私有库召回条数（优先）
+  public_top_k: 4     # 公共库补充条数
+  bm25_top_k: 8       # 关键词召回条数（每个库）
+  rrf_k: 60           # RRF 融合参数
+  private_weight: 1.2 # 私有库在最终排序中的加权（>1 表示私有优先）
+  authority_boost: 0.15  # 每个权威权重档位在分数上的加成系数
+
+chunking:
+  max_chunk_chars: 1200   # 兜底切片的块大小
+  overlap_chars: 120      # 兜底切片重叠
+
+ingestion:
+  auto_save_generated: true   # 四大场景生成结果自动回库（沉淀进私有知识库）
+
+paths:
+  data_dir: data
+  chroma_dir: data/chroma
+  sqlite_db: data/ingest_state.db
+  ingest_dir: ingest
