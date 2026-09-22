@@ -79,6 +79,7 @@ DEEPSEEK_API_KEY=sk-xxxxxxxx
 ```
 
 然后就可以开始烧 token 了（放心，DeepSeek 很便宜，冲个100块够一个月，梁圣NB！！）。
+或者会搭VPN的可以尝试GPT - 6，出点血借用一下神的力量。
 
 ### 4. 启动
 
