@@ -1,13 +1,3 @@
-"""Query 改写：把口语化 / 模糊的提问改写成更适合向量检索的规范查询短语。
-
-参考 rag-from-zero 第 7 章「Query 理解与改写」。针对中学语文教学场景：
-- 学生口语提问 → 补全篇目 / 学段 / 知识点维度
-- 文言实词 / 虚词提问 → 展开为「篇目 + 词 + 含义用法」
-- 缩写 / 指代不明 → 补全为书面、具体的检索短语
-
-注意：改写结果**只用于检索**，不影响生成阶段——生成仍然拿到用户的原始提问，
-改写只是为了让召回更准。
-"""
 from __future__ import annotations
 
 from ..config import api_key_ready
@@ -22,9 +12,7 @@ _SYSTEM = """你是中学语文检索查询改写器。把老师或学生的口�
 4. 只补关键检索信息，不要展开成完整问题，不要无中生有（不确定篇目不要硬加）。
 5. 输出一句改写后的检索短语（中文），不要引号、不要解释、不要多余文字。"""
 
-
 def rewrite_query(query: str) -> str:
-    """返回改写后的检索查询；未配置 key、改写失败或结果异常时，原样返回以保证不中断检索。"""
     q = (query or "").strip()
     if not q or not api_key_ready():
         return query
@@ -35,9 +23,8 @@ def rewrite_query(query: str) -> str:
             {"role": "user", "content": q},
         ])
         out = (resp.content or "").strip()
-        # 基本 sanity：长度不能异常暴涨，也不能是空
         if 2 <= len(out) <= max(len(q) * 4, 60):
             return out
         return query
-    except Exception:  # noqa: BLE001
+    except Exception:
         return query

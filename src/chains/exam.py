@@ -1,4 +1,3 @@
-"""出题：私有错题库驱动，干扰项来自学生真实错误作答，对标课标不超纲。"""
 from __future__ import annotations
 
 from ..retrieval.retriever import retrieve
@@ -29,9 +28,7 @@ _SYSTEM = """你是中学语文命题专家，为老师「针对学生真实踩�
 }
 """
 
-
 def run(query: str) -> ChainResult:
-    # 出题的薄弱点必须来自私有文档，因此只在私有库检索
     docs = retrieve(query, library="private")
     ctx, citations = build_context(docs)
     user = f"出题需求：{query}\n\n检索到的学生错题/作答样本（薄弱点必须来自这里）：\n{ctx}"
@@ -42,7 +39,6 @@ def run(query: str) -> ChainResult:
     content = _render(data)
     save_generated("出题", query, content)
     return ChainResult(content=content, citations=citations, data=data)
-
 
 def _render(data: dict) -> str:
     lines = [f"# {data.get('title', '')}"]

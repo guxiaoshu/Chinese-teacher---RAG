@@ -1,10 +1,3 @@
-"""入库状态库（SQLite）：记录每个文件是否已处理、标签、chunk 数等。
-
-作用：
-1. 文件内容 hash 去重，避免重复入库
-2. 前端展示「哪些文件已入库 / 状态如何」
-3. 支撑 BM25 索引重建时知道有哪些 chunk 属于哪个文件
-"""
 from __future__ import annotations
 
 import hashlib
@@ -29,12 +22,10 @@ CREATE TABLE IF NOT EXISTS files (
 );
 """
 
-
 def get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     return conn
-
 
 def init_db() -> None:
     conn = get_conn()
@@ -44,7 +35,6 @@ def init_db() -> None:
     finally:
         conn.close()
 
-
 def sha256_of(path: Path | str) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -52,9 +42,7 @@ def sha256_of(path: Path | str) -> str:
             h.update(chunk)
     return h.hexdigest()
 
-
 def file_status(path: Path | str, sha: str) -> str | None:
-    """返回已入库状态，未入库返回 None。"""
     conn = get_conn()
     try:
         row = conn.execute(
@@ -63,23 +51,20 @@ def file_status(path: Path | str, sha: str) -> str | None:
         if row is None:
             return None
         if row["sha256"] == sha and row["status"] == "processed":
-            return "processed"  # 已入库且内容未变
+            return "processed"
         if row["sha256"] != sha:
-            return "changed"  # 内容变了，需要重新入库
+            return "changed"
         return row["status"]
     finally:
         conn.close()
 
-
 def get_sha(path: Path | str) -> str | None:
-    """返回文件上次入库时的内容 hash（无记录则 None）。"""
     conn = get_conn()
     try:
         row = conn.execute("SELECT sha256 FROM files WHERE path = ?", (str(path),)).fetchone()
         return row["sha256"] if row else None
     finally:
         conn.close()
-
 
 def upsert(path: Path | str, sha: str, library: str, status: str, **fields) -> None:
     conn = get_conn()
@@ -104,18 +89,14 @@ def upsert(path: Path | str, sha: str, library: str, status: str, **fields) -> N
     finally:
         conn.close()
 
-
 def mark_processed(path: Path | str, sha: str, library: str, chunk_count: int, doc_type: str, tags: dict) -> None:
     upsert(path, sha, library, "processed", chunk_count=chunk_count, doc_type=doc_type, tags=json.dumps(tags, ensure_ascii=False))
-
 
 def mark_error(path: Path | str, sha: str, library: str, error: str) -> None:
     upsert(path, sha, library, "error", error=error[:500])
 
-
 def mark_skipped(path: Path | str, sha: str, library: str) -> None:
     upsert(path, sha, library, "skipped")
-
 
 def list_files() -> list[dict]:
     conn = get_conn()
@@ -124,7 +105,6 @@ def list_files() -> list[dict]:
         return [dict(r) for r in rows]
     finally:
         conn.close()
-
 
 def count_by_library() -> dict[str, int]:
     conn = get_conn()
@@ -135,7 +115,6 @@ def count_by_library() -> dict[str, int]:
         return {r["library"]: r["n"] for r in rows}
     finally:
         conn.close()
-
 
 def clear_record(path: Path | str) -> None:
     conn = get_conn()

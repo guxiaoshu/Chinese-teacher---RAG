@@ -1,12 +1,3 @@
-"""教案 / 课堂笔记切片：按课时、教学环节切。
-
-边界识别依据：
-- 第X课时
-- 一、二、三（中文序号）
-- （一）（二）或 (一)(二)
-- 【导入】【重难点】【课堂提问】【拓展】【板书】等环节标记
-每个环节一个 chunk，meta 里记录环节类型，便于后续按环节检索。
-"""
 from __future__ import annotations
 
 import re
@@ -14,17 +5,16 @@ import re
 from .base import Chunk, split_by_headings, _sub_split_long
 
 _HEADING_PATTERNS = [
-    r"^第[一二三四五六七八九十百\d]+课时",        # 第X课时
-    r"^[一二三四五六七八九十]+、",                # 一、
-    r"^[一二三四五六七八九十]+[.．]\s*\S",        # 一. 标题
-    r"^\d+、",                                    # 1、
-    r"^\d+[.．]\s*\S",                            # 1. 标题
-    r"^（[一二三四五六七八九十\d]+）",            # （一）
-    r"^\([一二三四五六七八九十\d]+\)",            # (一)
-    r"^【[^】]+】",                               # 【导入】等
+    r"^第[一二三四五六七八九十百\d]+课时",
+    r"^[一二三四五六七八九十]+、",
+    r"^[一二三四五六七八九十]+[.．]\s*\S",
+    r"^\d+、",
+    r"^\d+[.．]\s*\S",
+    r"^（[一二三四五六七八九十\d]+）",
+    r"^\([一二三四五六七八九十\d]+\)",
+    r"^【[^】]+】",
 ]
 
-# 环节关键词 -> 归一化环节名
 _STAGE_KEYWORDS = {
     "导入": "导入",
     "重难点": "重难点",
@@ -41,7 +31,6 @@ _STAGE_KEYWORDS = {
     "小结": "小结",
     "课堂总结": "小结",
 }
-
 
 class LessonPlanChunker:
     doc_type = "教案"
@@ -61,7 +50,6 @@ class LessonPlanChunker:
                     meta["环节"] = stage
                 chunks.append(Chunk(text=sub, meta=meta))
         return chunks
-
 
 def _detect_stage(heading: str, body: str) -> str:
     probe = (heading + " " + body[:80])

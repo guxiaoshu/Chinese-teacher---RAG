@@ -1,4 +1,3 @@
-"""写教案：私有库优先 + 公共库补充，基于老师历年沉淀迭代出新版教案。"""
 from __future__ import annotations
 
 from ..retrieval.retriever import retrieve
@@ -21,9 +20,8 @@ _SYSTEM = """你是一位资深中学语文教研员，为一位有多年教学�
 7. 用 Markdown 输出，语言贴合一线教学，不空谈理论、不套模板话术。
 """
 
-
 def run(query: str) -> ChainResult:
-    docs = retrieve(query)  # 私有优先 + 公共补充
+    docs = retrieve(query)
     ctx, citations = build_context(docs)
     user = f"备课需求：{query}\n\n检索到的参考材料：\n{ctx}"
     llm = get_reason_llm()

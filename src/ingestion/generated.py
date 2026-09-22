@@ -1,14 +1,3 @@
-"""生成结果自动回库：把四大场景的产出沉淀进私有知识库，形成闭环。
-
-场景 → 文档类型映射：
-  写教案 → 教案；出题 → 习题；答疑 → 课堂笔记；学情分析 → 课堂笔记
-
-每次生成后：
-1) 直接切片 + 向量化，入私有库（带 generated=True 标记，可溯源、可与原始资料区分）；
-2) 同时存档一份 Markdown 到 data/generated/ 供老师随时查阅。
-
-是否自动回库由 config.yaml 的 `ingestion.auto_save_generated` 控制（默认开）。
-"""
 from __future__ import annotations
 
 import hashlib
@@ -29,7 +18,6 @@ _SCENARIO_TO_TYPE = {
     "学情分析": "课堂笔记",
 }
 
-# 生成内容的权威等级：低于教师手写批注（5），高于学生作答（2）
 _AUTHORITY = {
     "教案": "教师教案",
     "课堂笔记": "教师教案",
@@ -38,15 +26,11 @@ _AUTHORITY = {
 
 _GENERATED_DIR = DATA_DIR / "generated"
 
-
 def _extract_article(query: str) -> str:
-    """从需求里简单提取《篇目名》作为 article 标签（不额外调 LLM）。"""
     m = re.search(r"《([^》]{1,30})》", query)
     return m.group(1).strip() if m else ""
 
-
 def save_generated(scenario: str, query: str, content: str) -> bool:
-    """把生成结果沉淀回私有库。失败不抛异常（绝不影响主流程），返回是否成功。"""
     if not CONFIG.get("ingestion", {}).get("auto_save_generated", True):
         return False
     content = (content or "").strip()
@@ -98,7 +82,6 @@ def save_generated(scenario: str, query: str, content: str) -> bool:
         upsert_chunks("private", ids, texts, embs, metas)
         rebuild_index("private")
 
-        # 存档一份 Markdown 供查阅（不进 ingest/，避免被文件监听重复处理）
         _GENERATED_DIR.mkdir(parents=True, exist_ok=True)
         header = (
             f"# {scenario}（自动沉淀）\n\n"
@@ -107,5 +90,5 @@ def save_generated(scenario: str, query: str, content: str) -> bool:
         )
         (_GENERATED_DIR / source_name).write_text(header + content, encoding="utf-8")
         return True
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False

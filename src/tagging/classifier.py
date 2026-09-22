@@ -1,11 +1,3 @@
-"""文档分类打标签（入库前）。
-
-用 DeepSeek JSON 模式做六维分类，产出结构化的 DocTags：
-  学段 / 单元 / 篇目 / 知识点 / 文档类型 / 学情标签
-
-分类在切片之前做，因为文档类型决定切片策略。
-文件名 / 目录名作为预填线索（rule 提示），最终以模型判断为准并做枚举校验。
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
@@ -13,28 +5,24 @@ from dataclasses import dataclass, field, asdict
 from ..config import allowed_doc_types, allowed_grades, allowed_knowledge_points, allowed_learning_tags
 from ..llm.deepseek import invoke_json
 
-# 分类走的是枚举，但自由文本字段（单元、篇目、学情具体描述）保留模型原文
 _DOC_TYPES = "、".join(allowed_doc_types())
 _GRADES = "、".join(allowed_grades())
 _KP = "、".join(allowed_knowledge_points())
 _LT = "、".join(allowed_learning_tags())
 
-
 @dataclass
 class DocTags:
-    grade: str = ""                       # 学段
-    unit: str = ""                        # 单元
-    article: str = ""                     # 篇目
-    knowledge_points: list[str] = field(default_factory=list)   # 知识点
-    doc_type: str = "其他"                # 文档类型
-    learning_tags: list[str] = field(default_factory=list)      # 学情标签
-    situation_note: str = ""              # 学情自由文本（如"象征含义理解片面"）
-    summary: str = ""                     # 一句话摘要
+    grade: str = ""
+    unit: str = ""
+    article: str = ""
+    knowledge_points: list[str] = field(default_factory=list)
+    doc_type: str = "其他"
+    learning_tags: list[str] = field(default_factory=list)
+    situation_note: str = ""
+    summary: str = ""
 
     def to_metadata(self) -> dict:
-        """转成适合存向量库 / 状态库的标量元数据。"""
         return asdict(self)
-
 
 _SYSTEM = f"""你是一名中学语文教研助理，负责给上传的教学文档打标签，用于后续检索。
 
@@ -95,10 +83,7 @@ _SYSTEM = f"""你是一名中学语文教研助理，负责给上传的教学文
 
 只输出 JSON，不要输出其它内容。"""
 
-
 def classify(text: str, filename: str = "", hint_dir: str = "") -> DocTags:
-    """对文档内容做六维分类，返回 DocTags。"""
-    # 只取前 N 字符，避免超长文档浪费 token（分类看开头 + 抽样足够）
     sample = text[:6000]
     if len(text) > 6000:
         sample += "\n...(中段略)...\n" + text[len(text) // 2 : len(text) // 2 + 2000]
@@ -113,7 +98,6 @@ def classify(text: str, filename: str = "", hint_dir: str = "") -> DocTags:
     tags = _sanitize(raw)
     return tags
 
-
 def _sanitize(raw: dict) -> DocTags:
     doc_type = str(raw.get("doc_type", "其他")).strip()
     if doc_type not in allowed_doc_types():
@@ -121,12 +105,10 @@ def _sanitize(raw: dict) -> DocTags:
 
     grade = str(raw.get("grade", "")).strip()
     if grade and grade not in allowed_grades():
-        # 允许模糊（如"七下"），但不强行纠正，保留模型原文供检索
         pass
 
     kp = _as_list(raw.get("knowledge_points"))
     lt = _as_list(raw.get("learning_tags"))
-    # 学情具体描述若落在学情标签里，归并进 learning_tags，其余进 situation_note
     note = str(raw.get("situation_note", "")).strip()
 
     return DocTags(
@@ -139,7 +121,6 @@ def _sanitize(raw: dict) -> DocTags:
         situation_note=note,
         summary=str(raw.get("summary", "")).strip(),
     )
-
 
 def _as_list(v) -> list[str]:
     if v is None:

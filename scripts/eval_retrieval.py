@@ -1,12 +1,3 @@
-"""检索质量评估：Recall@k / MRR，并对比「Query 改写」开与关的收益。
-
-用法（在项目根目录）：
-    python scripts/eval_retrieval.py            # 默认跑全部，对比 rewrite on/off
-    python scripts/eval_retrieval.py --on       # 只看改写开启的结果
-    python scripts/eval_retrieval.py --off      # 只看改写关闭的结果
-
-评估集在 data/eval_set.json，可自行增删 query 与 expected 关键词。
-"""
 from __future__ import annotations
 
 import argparse
@@ -16,28 +7,23 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.retrieval.retriever import retrieve  # noqa: E402
+from src.retrieval.retriever import retrieve
 
 _EVAL_PATH = Path(__file__).resolve().parent.parent / "data" / "eval_set.json"
-
 
 def load_eval() -> tuple[int, list[dict]]:
     with open(_EVAL_PATH, "r", encoding="utf-8") as f:
         data = json.load(f)
     return int(data.get("k", 5)), data["queries"]
 
-
 def _is_relevant(doc, item: dict) -> bool:
-    # 块级匹配：expect_text 里的关键词须**同时**出现在块文本中（细粒度）
     expect_text = item.get("expect_text")
     if expect_text:
         return all(k in doc.text for k in expect_text)
-    # 文件级匹配：expected 里的关键词命中来源文件名/篇目任一即可（粗粒度）
     expected = item.get("expected", [])
     source = doc.source_file or ""
     article = doc.meta.get("article", "") or ""
     return any(k in source or k in article for k in expected)
-
 
 def _eval_once(queries: list[dict], k: int, rewrite: bool) -> dict:
     recall_hits = 0
@@ -66,12 +52,10 @@ def _eval_once(queries: list[dict], k: int, rewrite: bool) -> dict:
         "details": details,
     }
 
-
 def _print(result: dict, label: str, k: int) -> None:
     print(f"\n===== {label}（k={k}）=====")
     print(f"Recall@{k}: {result['recall_at_k']:.2%}  ({result['hits']}/{result['total']})")
     print(f"MRR:        {result['mrr']:.3f}")
-
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -95,7 +79,6 @@ def main() -> None:
             if old["hit"] != new["hit"]:
                 arrow = "✅ 命中" if new["hit"] else "❌ 丢失"
                 print(f"  {arrow}: {new['query'][:30]} (关→{old['top1']}, 开→{new['top1']})")
-
 
 if __name__ == "__main__":
     main()

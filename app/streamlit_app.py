@@ -1,11 +1,3 @@
-"""语文教学 RAG 助手 —— Streamlit 前端。
-
-启动（在项目根目录）：
-    streamlit run app/streamlit_app.py
-
-首次运行会：1) 下载 BGE 中文 embedding 模型（bge-base-zh-v1.5，约 400MB，国内走 HF 镜像）；
-2) 首次调用时模型预热约 60s（oneDNN 图编译，仅一次），之后每次编码仅毫秒级。
-"""
 from __future__ import annotations
 
 import sys
@@ -29,13 +21,9 @@ st.set_page_config(page_title="语文教学 RAG 助手", page_icon="📚", layou
 
 init_db()
 
-# 文件监听只启动一次（Streamlit 每次交互会重跑脚本，用 session_state 记住）
 if "watcher" not in st.session_state:
     st.session_state["watcher"] = IngestWatcher(process_file)
     st.session_state["watcher"].start()
-
-
-# ---------------- 侧边栏：入库管理 ----------------
 
 def _render_citations(citations: list[dict]) -> None:
     if not citations:
@@ -44,7 +32,6 @@ def _render_citations(citations: list[dict]) -> None:
         for c in citations:
             lib = "🟢 私有知识库" if c["library"] == "private" else "🔵 公共基准库"
             st.markdown(f"**[{c['index']}]** {lib} · `{c['source_file']}` · {c['doc_type']}")
-
 
 with st.sidebar:
     st.title("📚 语文教学 RAG 助手")
@@ -81,7 +68,7 @@ with st.sidebar:
             st.toast(f"已保存 {u.name}，正在入库…")
             try:
                 r = process_file(p)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 r = {"path": str(p), "status": "error", "error": str(e)}
             if r.get("status") == "processed":
                 st.success(f"✅ {u.name} 入库成功（{r.get('chunks', 0)} 个切片）")
@@ -102,9 +89,6 @@ with st.sidebar:
         st.success("索引已重建")
 
     st.caption("也可以直接把文件拖进项目里的 `ingest/private` 或 `ingest/public` 文件夹，会自动入库。")
-
-
-# ---------------- 主区：四大场景 + 文件管理 ----------------
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["✍️ 写教案", "📝 出题", "💬 答疑", "📊 学情分析", "🗂 文件管理"])
 

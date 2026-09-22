@@ -1,15 +1,3 @@
-"""检索层：多路召回 + 私有优先 + 权威加权。
-
-三条核心规则在此落地：
-1. 私有库优先召回，公共库补充 —— 分别召回后再拼接（私有在前）
-2. 冲突以教师手写批注为准 —— authority 权重在排序时叠加
-3. 全量溯源 —— 每个 RetrievedDoc 都带 source_file + library
-
-召回通道：
-- 向量召回（bge-base-zh-v1.5 dense，Chroma cosine）
-- 关键词召回（jieba + BM25，文言实词/虚词的精确匹配更准）
-两者用 RRF 融合。
-"""
 from __future__ import annotations
 
 import threading
@@ -26,10 +14,8 @@ from .query_rewrite import rewrite_query
 _R = CONFIG["retrieval"]
 _AUTHORITY = authority_weight_map()
 
-# 内存 BM25 索引缓存：library -> 语料
 _index: dict[str, dict] = {}
 _index_lock = threading.Lock()
-
 
 @dataclass
 class RetrievedDoc:
@@ -45,15 +31,10 @@ class RetrievedDoc:
         lib = "私有知识库" if self.library == "private" else "公共基准库"
         return f"【{lib}】{self.source_file}"
 
-
-# ---------------- BM25 索引 ----------------
-
 def _tokenize(text: str) -> list[str]:
     return [t for t in jieba.lcut(text) if t.strip()]
 
-
 def rebuild_index(library: str | None = None) -> None:
-    """重建 BM25 索引（入库后调用）。"""
     libs = [library] if library else list(LIBRARY_COLLECTION.keys())
     for lib in libs:
         data = get_all_documents(lib)
@@ -66,14 +47,10 @@ def rebuild_index(library: str | None = None) -> None:
             _index[lib] = {"ids": ids, "texts": texts, "metas": metas,
                            "tokenized": tokenized, "bm25": bm25}
 
-
 def _ensure_index(library: str) -> dict:
     if library not in _index:
         rebuild_index(library)
     return _index[library]
-
-
-# ---------------- 元数据过滤 ----------------
 
 def _to_where(filters: dict | None) -> dict | None:
     if not filters:
@@ -83,7 +60,6 @@ def _to_where(filters: dict | None) -> dict | None:
         if v not in (None, ""):
             where[k] = {"$eq": str(v)}
     return where or None
-
 
 def _matches(meta: dict, filters: dict | None) -> bool:
     if not filters:
@@ -95,16 +71,12 @@ def _matches(meta: dict, filters: dict | None) -> bool:
             return False
     return True
 
-
-# ---------------- 召回通道 ----------------
-
 def _vector_rank(library: str, query: str, filters: dict | None, n: int) -> list[str]:
     emb = embed_query(query)
     col = get_collection(library)
     res = col.query(query_embeddings=[emb], n_results=max(n, 1), where=_to_where(filters))
     ids = res.get("ids") or [[]]
     return [i for i in ids[0] if i]
-
 
 def _bm25_rank(library: str, query: str, filters: dict | None, n: int) -> list[str]:
     idx = _ensure_index(library)
@@ -124,16 +96,12 @@ def _bm25_rank(library: str, query: str, filters: dict | None, n: int) -> list[s
             break
     return out
 
-
 def _rrf(rankings: list[list[str]], k: int) -> list[tuple[str, float]]:
     scores: dict[str, float] = {}
     for ranking in rankings:
         for rank, doc_id in enumerate(ranking):
             scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
     return sorted(scores.items(), key=lambda x: -x[1])
-
-
-# ---------------- 主入口 ----------------
 
 def _retrieve_single(library: str, query: str, filters: dict | None, top_k: int) -> list[RetrievedDoc]:
     n = max(top_k, _R["bm25_top_k"], _R["private_top_k"], _R["public_top_k"])
@@ -168,15 +136,8 @@ def _retrieve_single(library: str, query: str, filters: dict | None, top_k: int)
             break
     return results
 
-
 def retrieve(query: str, library: str | None = None, filters: dict | None = None,
              top_k: int | None = None, rewrite: bool = True) -> list[RetrievedDoc]:
-    """检索主入口。
-
-    library=None：私有优先 + 公共补充（私有 top_k 在前，公共补足）。
-    library="private"/"public"：只查指定库。
-    rewrite=True：先对查询做口语化改写（只影响召回，不影响生成）。
-    """
     if rewrite:
         query = rewrite_query(query)
 
@@ -188,5 +149,4 @@ def retrieve(query: str, library: str | None = None, filters: dict | None = None
     k_pub = _R["public_top_k"]
     priv = _retrieve_single("private", query, filters, k_priv)
     pub = _retrieve_single("public", query, filters, k_pub)
-    # 私有优先：私有结果排前，公共补充在后
     return priv + pub

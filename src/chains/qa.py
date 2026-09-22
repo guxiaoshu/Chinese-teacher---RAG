@@ -1,4 +1,3 @@
-"""答疑：私有优先召回老师课堂例子/批注，启发式引导，不直接给完整答案。"""
 from __future__ import annotations
 
 from ..retrieval.retriever import retrieve
@@ -15,9 +14,8 @@ _SYSTEM = """你是老师私人的语文教学答疑助手。为学生答疑时�
 4. 语气像老师本人，沿用其教学话术。
 """
 
-
 def run(query: str) -> ChainResult:
-    docs = retrieve(query)  # 私有优先 + 公共补充
+    docs = retrieve(query)
     ctx, citations = build_context(docs)
     user = f"学生/老师的问题：{query}\n\n可参考的老师过往资料：\n{ctx}"
     llm = get_chat_llm()

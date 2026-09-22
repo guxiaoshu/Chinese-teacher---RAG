@@ -1,7 +1,3 @@
-"""学情沉淀：基于私有错题/作答样本，输出某篇目/单元的高频错误与教学建议。
-
-这是「错题沉淀闭环」的显性出口：新资料入库后，随时可生成最新学情诊断。
-"""
 from __future__ import annotations
 
 from ..retrieval.retriever import retrieve
@@ -23,7 +19,6 @@ _SYSTEM = """你是学情分析助手，基于老师【私有知识库】里的�
 }
 """
 
-
 def run(query: str) -> ChainResult:
     docs = retrieve(query, library="private")
     ctx, citations = build_context(docs)
@@ -35,7 +30,6 @@ def run(query: str) -> ChainResult:
     content = _render(data)
     save_generated("学情分析", query, content)
     return ChainResult(content=content, citations=citations, data=data)
-
 
 def _render(data: dict) -> str:
     def bullet(title, key):
