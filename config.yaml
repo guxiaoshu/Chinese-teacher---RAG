@@ -69,7 +69,7 @@ llm:
 
 embedding:
   model_name: BAAI/bge-base-zh-v1.5
-  # device: auto -> 有 CUDA 用 GPU，否则 CPU（本机为 Intel 集显，走 CPU）
+  # device: auto -
   device: auto
   query_instruction: "为这个句子生成表示以用于检索相关文章："
 

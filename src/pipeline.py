@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+
 from .config import PRIVATE_DIR, PUBLIC_DIR
 from .ingestion.loader import extract_text, is_supported
 from .ingestion.state import (
