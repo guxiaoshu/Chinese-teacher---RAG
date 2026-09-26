@@ -8,7 +8,7 @@ __pycache__/
 .venv/
 venv/
 
-# 入库目录里的源文件（可选，按需取消注释）
+# 入库目录里的源文件
 # ingest/private/*
 # ingest/public/*
 # !ingest/private/.gitkeep
